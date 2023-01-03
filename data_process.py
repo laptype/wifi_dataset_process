@@ -143,31 +143,19 @@ def normalize_data_h5(train_list_path, test_list_path, train_data_path, test_dat
     normalize(train_list_path, train_data_path)
     normalize(test_list_path, test_data_path)
 
+def downsample_data(train_list_path, test_list_path, train_data_path, test_data_path, downsample_factor = 2):
 
-def downsample_train_test(datasource_path: os.path, index: int, downsample_factor: int = 10):
-    # train_data = scio.loadmat(os.path.join(datasource_path, 'train_dataset_%d.mat' % index))
-    # test_data = scio.loadmat(os.path.join(datasource_path, 'test_dataset_%d.mat' % index))
-    train_data = load_mat(os.path.join(datasource_path, 'train_dataset_%d.h5' % index))
-    test_data = load_mat(os.path.join(datasource_path, 'test_dataset_%d.h5' % index))
-
-    seq_len = train_data['data'].shape[2]
-    assert seq_len == test_data['data'].shape[2]
-
-    train_data['data'] = torch.Tensor(train_data['data'])
-    train_data['data'] = F.interpolate(train_data['data'], seq_len // downsample_factor, mode='linear',
-                                       align_corners=True)
-    train_data['data'] = train_data['data'].numpy()
-
-    test_data['data'] = torch.Tensor(test_data['data'])
-    test_data['data'] = F.interpolate(test_data['data'], seq_len // downsample_factor, mode='linear',
-                                      align_corners=True)
-    test_data['data'] = test_data['data'].numpy()
-
-    # scio.savemat(os.path.join(datasource_path, 'train_dataset_%d.mat' % index), train_data)
-    # scio.savemat(os.path.join(datasource_path, 'test_dataset_%d.mat' % index), test_data)
-    save_mat(os.path.join(datasource_path, 'train_dataset_%d.h5' % index), train_data)
-    save_mat(os.path.join(datasource_path, 'test_dataset_%d.h5' % index), test_data)
-
+    def _downsample(data_list_path, data_path):
+        data_list = pd.read_csv(data_list_path)
+        for index, row in tqdm(data_list.iterrows()):
+            data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
+            n_channel, seq_len = data['amp'].shape
+            data['amp'] = torch.unsqueeze(torch.Tensor(data['amp']), dim=0)
+            data['amp'] = F.interpolate(data['amp'], seq_len // downsample_factor, mode='linear')
+            data['amp'] = torch.squeeze(data['amp']).numpy()
+            save_mat(os.path.join(data_path, f'{row["file"]}.h5'), data)
+    _downsample(train_list_path, train_data_path)
+    _downsample(test_list_path, test_data_path)
 
 def check_data(list_path, data_path):
     df = pd.read_csv(list_path)
@@ -216,15 +204,19 @@ if __name__ == '__main__':
     '''
         数据集划分
     '''
+    # train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
+    #                                                                           save_path,
+    #                                                                           train_ratio=0.1,
+    #                                                                           mean_std_path='dataset/mean_std_train.h5')
     train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
                                                                               save_path,
-                                                                              train_ratio=0.8,
-                                                                              mean_std_path='dataset/mean_std_train.h5')
+                                                                              train_ratio=0.1,
+                                                                              mean_std_path=None)
     # split_train_test(dataset_path, save_path, train_ratio=0.98)
     '''
         check_data
     '''
-    # check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
+    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
     # normalize_data(train_list_path=train_list_path,
     #                test_list_path =test_list_path,
@@ -235,9 +227,22 @@ if __name__ == '__main__':
     '''
         归一化
     '''
-    # normalize_data_h5(train_list_path=train_list_path,
-    #                test_list_path =test_list_path,
-    #                train_data_path=train_path,
-    #                test_data_path =test_path)
+    normalize_data_h5(train_list_path=train_list_path,
+                      test_list_path =test_list_path,
+                      train_data_path=train_path,
+                      test_data_path =test_path,
+                      mean_std_path = 'dataset/mean_std_train.h5')
     # mean_std = load_mat('dataset/mean_std_train.h5')
     # print(mean_std['mean'].shape, mean_std['std'].shape)
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'))
+
+    '''
+        下采样
+    '''
+    downsample_data(train_list_path=train_list_path,
+                   test_list_path =test_list_path,
+                   train_data_path=train_path,
+                   test_data_path =test_path,
+                   downsample_factor=2)
+
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'))
