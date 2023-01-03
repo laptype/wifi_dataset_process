@@ -6,7 +6,7 @@ import scipy.io as scio
 import torch
 import torch.nn.functional as F
 from scipy.signal import stft
-from sklearn.model_selection import train_test_split
+
 import pandas as pd
 from tqdm import tqdm
 
@@ -42,14 +42,21 @@ def split_train_test(dataset_path: os.path, save_path, rand = True, train_ratio 
 
     df_train = pd.DataFrame(train_list, columns=['file','label'])
     df_test = pd.DataFrame(test_list, columns=['file','label'])
-    df_train.to_csv(os.path.join(save_path, 'train_list.csv'), index=False)
-    df_test.to_csv(os.path.join(save_path, 'test_list.csv'), index=False)
+
+    train_list_path = os.path.join(save_path, 'train_list.csv')
+    test_list_path = os.path.join(save_path, 'test_list.csv')
+
+    df_train.to_csv(train_list_path, index=False)
+    df_test.to_csv(test_list_path, index=False)
 
     train_path = os.path.join(save_path, 'train')
     test_path = os.path.join(save_path, 'test')
 
 
     save_data_h5(test_list, test_path, dataset_path)
+    save_data_h5(train_list, train_path, dataset_path)
+
+    return train_path, train_list_path, test_path, test_list_path
 
 
 def save_data_h5(file_list, save_path, dataset_path):
@@ -73,42 +80,45 @@ def save_data_h5(file_list, save_path, dataset_path):
         save_mat(file_path, save_data)
 
 
-def _normalize(train_data, test_data):
+def _normalize(list_path, data_path):
+
     def get_mean_std(data):
         channel = data.shape[1]
         mean = np.mean(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-        mean = np.expand_dims(mean, 0)
-        mean = np.expand_dims(mean, 2)
+        mean = np.expand_dims(mean, 1)
         std = np.std(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-        std = np.expand_dims(std, 0)
-        std = np.expand_dims(std, 2)
+        std = np.expand_dims(std, 1)
         return mean, std
 
     def normalize(data, mean, std):
         return (data - mean) / std
 
-    amp_mean, amp_std = get_mean_std(train_data['data'])
-    train_data['data'] = normalize(train_data['data'], amp_mean, amp_std)
-    test_data['data'] = normalize(test_data['data'], amp_mean, amp_std)
+    amp_mean, amp_std = get_mean_std(read_all(list_path, data_path))
+    return amp_mean, amp_std
 
 
-def normalize_data(data_path: os.path):
-    # train_data = scio.loadmat(os.path.join(datasource_path, 'train_dataset_%d.mat' % index))
-    # test_data = scio.loadmat(os.path.join(datasource_path, 'test_dataset_%d.mat' % index))
+def normalize_data(train_list_path, test_list_path, train_data_path, test_data_path, save_path):
 
-    # TODO: 这里不对，要改
-    train_data = load_mat(data_path)
-    test_data = load_mat(data_path)
+    def normalize(data_list_path, data_path):
+        data_list = pd.read_csv(data_list_path)
+        for index, row in tqdm(data_list.iterrows()):
+            data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
+            data['amp'] = (data['amp'] - amp_mean) / amp_std
+            save_mat(os.path.join(data_path, f'{row["file"]}.h5'), data)
 
-    _normalize(train_data, test_data)
+    """
+        计算训练数据集的均值方差代替全部数据集的均值方差
+    """
+    amp_mean, amp_std = _normalize(train_list_path, train_data_path)
 
-    # scio.savemat(os.path.join(datasource_path, 'train_dataset_%d.mat' % index), train_data)
-    # scio.savemat(os.path.join(datasource_path, 'test_dataset_%d.mat' % index), test_data)
-    save_mat(data_path, train_data)
-    save_mat(data_path, test_data)
+    save_mat(os.path.join(save_path, f'mean_std.h5'),
+             {
+                 'mean': amp_mean,
+                 'std': amp_std
+             })
 
-
-
+    normalize(train_list_path, train_data_path)
+    normalize(test_list_path, test_data_path)
 
 
 def downsample_train_test(datasource_path: os.path, index: int, downsample_factor: int = 10):
@@ -151,6 +161,7 @@ def check_data(list_path, data_path):
     for j in range(3):
         plt.subplot(3,1,j+1)
         test_i = random.randint(0, len(df))
+        test_i = 5
         test_data = df.iloc[test_i]['file']
         data = load_mat(os.path.join(data_path, f'{test_data}.h5'))
         test_label = df.iloc[test_i]['label']
@@ -160,18 +171,38 @@ def check_data(list_path, data_path):
         plt.title(f'{test_i}, {test_data}, {test_label}, {data["label"]}')
     plt.show()
 
+def read_all(list_path, data_path):
+    data_list = pd.read_csv(list_path)
+    amp_list = []
+    # label_list = []
+    for index, row in data_list.iterrows():
+        data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
+        amp_list.append(np.expand_dims(data['amp'], 0))
+        # label_list.append(data['label'])
+    return np.concatenate(amp_list, axis=0)
 
 
 if __name__ == '__main__':
-    dataset_path = 'D:\study\dataset\wifi-partition-data-abs'
-    dataset_path = os.path.join(dataset_path, 'wifi_partition_data_abs')
+    dataset_path = 'wifi_partition_data_abs'
+    dataset_path = os.path.join(dataset_path)
 
     save_path = 'dataset'
     save_path = os.path.join(save_path)
-
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    '''
+        数据集划分
+    '''
+    train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path, save_path, train_ratio=0.5)
     # split_train_test(dataset_path, save_path, train_ratio=0.98)
-    # print('='*20)
-    # read_file_list('test_list.csv', dataset_path)
-    # read_file_list('train_list.csv')
-
-    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
+    '''
+        check_data
+    '''
+    # check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
+    # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
+    normalize_data(train_list_path=train_list_path,
+                   test_list_path =test_list_path,
+                   train_data_path=train_path,
+                   test_data_path =test_path,
+                   save_path=save_path)
+    # check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
