@@ -15,7 +15,7 @@ from util import load_mat, save_mat
 import random
 
 
-def split_train_test(dataset_path: os.path, save_path, rand = True, train_ratio = 0.8):
+def split_train_test(dataset_path: os.path, save_path, rand = True, train_ratio = 0.8, mean_std_path=None):
     file_list = os.listdir(dataset_path)
     class_list = [[] for _ in range(7)]
 
@@ -53,13 +53,19 @@ def split_train_test(dataset_path: os.path, save_path, rand = True, train_ratio 
     test_path = os.path.join(save_path, 'test')
 
 
-    save_data_h5(test_list, test_path, dataset_path)
-    save_data_h5(train_list, train_path, dataset_path)
+    save_data_h5(test_list, test_path, dataset_path, mean_std_path)
+    save_data_h5(train_list, train_path, dataset_path, mean_std_path)
 
     return train_path, train_list_path, test_path, test_list_path
 
 
-def save_data_h5(file_list, save_path, dataset_path):
+def save_data_h5(file_list, save_path, dataset_path, mean_std_path = None):
+
+    def _normalize(data, mean, std):
+        return (data - mean) / std
+
+    if mean_std_path is not None:
+        mean_std = load_mat(mean_std_path)
 
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
@@ -71,6 +77,9 @@ def save_data_h5(file_list, save_path, dataset_path):
         data = scio.loadmat(os.path.join(dataset_path, file))['absMat']
         C, D, N = data.shape
         data = np.transpose(data, (2, 0, 1)).reshape((C * N, D))
+
+        if mean_std_path is not None:
+            data = _normalize(data, mean_std['mean'], mean_std['std'])
 
         save_data = {'amp': data,
                      'label': int(label)}
@@ -116,6 +125,20 @@ def normalize_data(train_list_path, test_list_path, train_data_path, test_data_p
                  'mean': amp_mean,
                  'std': amp_std
              })
+
+    normalize(train_list_path, train_data_path)
+    normalize(test_list_path, test_data_path)
+
+def normalize_data_h5(train_list_path, test_list_path, train_data_path, test_data_path, mean_std_path='dataset/mean_std_train.h5'):
+
+    mean_std = load_mat(mean_std_path)
+
+    def normalize(data_list_path, data_path):
+        data_list = pd.read_csv(data_list_path)
+        for index, row in tqdm(data_list.iterrows()):
+            data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
+            data['amp'] = (data['amp'] - mean_std['mean']) / mean_std['std']
+            save_mat(os.path.join(data_path, f'{row["file"]}.h5'), data)
 
     normalize(train_list_path, train_data_path)
     normalize(test_list_path, test_data_path)
@@ -193,16 +216,28 @@ if __name__ == '__main__':
     '''
         数据集划分
     '''
-    train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path, save_path, train_ratio=0.5)
+    train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
+                                                                              save_path,
+                                                                              train_ratio=0.8,
+                                                                              mean_std_path='dataset/mean_std_train.h5')
     # split_train_test(dataset_path, save_path, train_ratio=0.98)
     '''
         check_data
     '''
     # check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
-    normalize_data(train_list_path=train_list_path,
-                   test_list_path =test_list_path,
-                   train_data_path=train_path,
-                   test_data_path =test_path,
-                   save_path=save_path)
+    # normalize_data(train_list_path=train_list_path,
+    #                test_list_path =test_list_path,
+    #                train_data_path=train_path,
+    #                test_data_path =test_path,
+    #                save_path=save_path)
     # check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
+    '''
+        归一化
+    '''
+    # normalize_data_h5(train_list_path=train_list_path,
+    #                test_list_path =test_list_path,
+    #                train_data_path=train_path,
+    #                test_data_path =test_path)
+    # mean_std = load_mat('dataset/mean_std_train.h5')
+    # print(mean_std['mean'].shape, mean_std['std'].shape)
