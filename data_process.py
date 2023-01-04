@@ -157,7 +157,7 @@ def downsample_data(train_list_path, test_list_path, train_data_path, test_data_
     _downsample(train_list_path, train_data_path)
     _downsample(test_list_path, test_data_path)
 
-def check_data(list_path, data_path, index_list, name):
+def check_data(list_path, data_path, index_list, name, save_path):
     df = pd.read_csv(list_path)
     import matplotlib.pyplot as plt
 
@@ -180,10 +180,11 @@ def check_data(list_path, data_path, index_list, name):
         for i in range(30):
             plt.plot(data['amp'][i,:])
         plt.title(f'{test_i}, {test_data}, {test_label}, {data["label"]}')
-    plt.show()
 
     f = plt.gcf()  # 获取当前图像
-    f.savefig(f'{name}.png')
+    f.savefig(os.path.join(save_path,f'{name}.png'))
+
+    plt.show()
     f.clear()  # 释放内存
 
 
@@ -221,7 +222,10 @@ if __name__ == '__main__':
     '''
         check_data
     '''
-    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'), [5, 1000, 2000],'amp')
+    # index_list = [5, 1000, 2000]
+    index_list = [1,3,5]
+
+    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'), index_list,'amp',save_path)
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
     # normalize_data(train_list_path=train_list_path,
     #                test_list_path =test_list_path,
@@ -239,7 +243,7 @@ if __name__ == '__main__':
                       mean_std_path = 'dataset/mean_std_train.h5')
     # mean_std = load_mat('dataset/mean_std_train.h5')
     # print(mean_std['mean'].shape, mean_std['std'].shape)
-    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),[5, 1000, 2000],'amp_nor')
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),index_list,'amp_nor',save_path)
 
     '''
         下采样
@@ -250,4 +254,4 @@ if __name__ == '__main__':
                    test_data_path =test_path,
                    downsample_factor=2)
 
-    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),[5, 1000, 2000],'amp_nor_down')
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),index_list,'amp_nor_down',save_path)
