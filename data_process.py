@@ -157,7 +157,7 @@ def downsample_data(train_list_path, test_list_path, train_data_path, test_data_
     _downsample(train_list_path, train_data_path)
     _downsample(test_list_path, test_data_path)
 
-def check_data(list_path, data_path):
+def check_data(list_path, data_path, index_list, name):
     df = pd.read_csv(list_path)
     import matplotlib.pyplot as plt
 
@@ -171,8 +171,8 @@ def check_data(list_path, data_path):
     plt.figure(figsize=(10,15))
     for j in range(3):
         plt.subplot(3,1,j+1)
-        test_i = random.randint(0, len(df))
-        test_i = 5
+        # test_i = random.randint(0, len(df))
+        test_i = index_list[j]
         test_data = df.iloc[test_i]['file']
         data = load_mat(os.path.join(data_path, f'{test_data}.h5'))
         test_label = df.iloc[test_i]['label']
@@ -181,6 +181,11 @@ def check_data(list_path, data_path):
             plt.plot(data['amp'][i,:])
         plt.title(f'{test_i}, {test_data}, {test_label}, {data["label"]}')
     plt.show()
+
+    f = plt.gcf()  # 获取当前图像
+    f.savefig(f'{name}.png')
+    f.clear()  # 释放内存
+
 
 def read_all(list_path, data_path):
     data_list = pd.read_csv(list_path)
@@ -210,13 +215,13 @@ if __name__ == '__main__':
     #                                                                           mean_std_path='dataset/mean_std_train.h5')
     train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
                                                                               save_path,
-                                                                              train_ratio=0.1,
+                                                                              train_ratio=0.8,
                                                                               mean_std_path=None)
     # split_train_test(dataset_path, save_path, train_ratio=0.98)
     '''
         check_data
     '''
-    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'))
+    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'), [5, 1000, 2000],'amp')
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
     # normalize_data(train_list_path=train_list_path,
     #                test_list_path =test_list_path,
@@ -234,7 +239,7 @@ if __name__ == '__main__':
                       mean_std_path = 'dataset/mean_std_train.h5')
     # mean_std = load_mat('dataset/mean_std_train.h5')
     # print(mean_std['mean'].shape, mean_std['std'].shape)
-    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'))
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),[5, 1000, 2000],'amp_nor')
 
     '''
         下采样
@@ -245,4 +250,4 @@ if __name__ == '__main__':
                    test_data_path =test_path,
                    downsample_factor=2)
 
-    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'))
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),[5, 1000, 2000],'amp_nor_down')
