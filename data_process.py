@@ -214,28 +214,18 @@ if __name__ == '__main__':
     #                                                                           save_path,
     #                                                                           train_ratio=0.1,
     #                                                                           mean_std_path='dataset/mean_std_train.h5')
-    # train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
-    #                                                                           save_path,
-    #                                                                           train_ratio=0.8,
-    #                                                                           mean_std_path=None)
+    train_path, train_list_path, test_path, test_list_path = split_train_test(dataset_path,
+                                                                              save_path,
+                                                                              train_ratio=0.8,
+                                                                              mean_std_path=None)
     # split_train_test(dataset_path, save_path, train_ratio=0.98)
     '''
         check_data
     '''
-    index_list = [5, 1000, 2000]
-    # index_list = [1,3,5]z
+    # index_list = [5, 1000, 2000]
+    index_list = [1,3,5]
 
-    dataset_path = os.path.join('/home/lanbo/dataset/wifi_violence_processed/')
-
-    train_path = os.path.join(dataset_path, 'train')
-    test_path = os.path.join(dataset_path, 'test')
-
-    train_list_path = os.path.join(dataset_path, 'train_list.csv')
-    test_list_path = os.path.join(dataset_path, 'test_list.csv')
-
-    mean_std_path = os.path.join(dataset_path,'mean_std_train.h5')
-
-    check_data(test_list_path, test_path, index_list,'amp',save_path)
+    check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'), index_list,'amp',save_path)
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
     # normalize_data(train_list_path=train_list_path,
     #                test_list_path =test_list_path,
@@ -246,22 +236,22 @@ if __name__ == '__main__':
     '''
         归一化
     '''
-    # normalize_data_h5(train_list_path=train_list_path,
-    #                   test_list_path =test_list_path,
-    #                   train_data_path=train_path,
-    #                   test_data_path =test_path,
-    #                   mean_std_path = 'dataset/mean_std_train.h5')
-    # # mean_std = load_mat('dataset/mean_std_train.h5')
-    # # print(mean_std['mean'].shape, mean_std['std'].shape)
-    # check_data(test_list_path, test_path, index_list,'amp_nor',save_path)
+    normalize_data_h5(train_list_path=train_list_path,
+                      test_list_path =test_list_path,
+                      train_data_path=train_path,
+                      test_data_path =test_path,
+                      mean_std_path = 'dataset/mean_std_train.h5')
+    # mean_std = load_mat('dataset/mean_std_train.h5')
+    # print(mean_std['mean'].shape, mean_std['std'].shape)
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),index_list,'amp_nor',save_path)
 
     '''
         下采样
     '''
-    # downsample_data(train_list_path=train_list_path,
-    #                test_list_path =test_list_path,
-    #                train_data_path=train_path,
-    #                test_data_path =test_path,
-    #                downsample_factor=2)
-    #
-    # check_data(test_list_path, test_path, index_list,'amp_nor_down',save_path)
+    downsample_data(train_list_path=train_list_path,
+                   test_list_path =test_list_path,
+                   train_data_path=train_path,
+                   test_data_path =test_path,
+                   downsample_factor=2)
+
+    check_data(os.path.join('dataset', 'test_list.csv'), os.path.join('dataset/test'),index_list,'amp_nor_down',save_path)
