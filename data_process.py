@@ -222,8 +222,8 @@ if __name__ == '__main__':
     '''
         check_data
     '''
-    # index_list = [5, 1000, 2000]
-    index_list = [1,3,5]
+    index_list = [5, 1000, 2000]
+    # index_list = [1,3,5]z
 
     check_data(os.path.join('dataset','test_list.csv'), os.path.join('dataset/test'), index_list,'amp',save_path)
     # print(read_all(os.path.join('dataset/test_list.csv'), os.path.join('dataset/test')).shape)
