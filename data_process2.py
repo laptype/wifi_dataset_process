@@ -163,7 +163,8 @@ def check_data(list_path, data_path, index_list, name, save_path):
     for index, row in df.iterrows():
         data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
         if data['label'] == row['label']:
-            print(data['amp'].shape, '-', data['label'], '-', row['label'])
+            if index % 1000 == 0:
+                print(data['amp'].shape, '-', data['label'], '-', row['label'])
         else:
             print('error')
 
@@ -188,15 +189,19 @@ def check_data(list_path, data_path, index_list, name, save_path):
 
 def check_dataset(list_path):
     data_list = pd.read_csv(list_path)
-    n_location = [0 for _ in range(8)]
+    n_location = [[0 for _ in range(8)] for _ in range(7)]
     n_class = [0 for _ in range(7)]
     for index, row in data_list.iterrows():
         info, _ = row['file'].split('_')
         location, person, action = info.split('-')
-        n_location[int(location)-1] += 1
+        n_location[int(action)-1][int(location)-1] += 1
         n_class[int(action)-1] += 1
-    print(f'n_location: {n_location}')
-    print(f'n_class: {n_class}')
+
+    for index, cls in enumerate(n_location):
+        for i, loc in enumerate(cls):
+            print(f'class {index} loc {i} loc_len: {loc}')
+    # print(f'n_location: {n_location}')
+    # print(f'n_class: {n_class}')
 
 
 
@@ -223,13 +228,14 @@ if __name__ == '__main__':
     """
         路径相关：
     """
-    dataset_path    = 'wifi_partition_data_abs'
-    save_path       = 'dataset'
+    dataset_path    = '/home/lanbo/dataset/wifi_violence/'
+    save_path       = '/home/lanbo/dataset/wifi_violence_processed/'
     train_path      = os.path.join(save_path, 'train')
     train_list_path = os.path.join(save_path, 'train_list.csv')
     test_path       = os.path.join(save_path, 'test')
     test_list_path  = os.path.join(save_path, 'test_list.csv')
-    mean_std_path   = os.path.join(save_path, 'mean_std.h5')
+
+    mean_std_path   = os.path.join('/home/lanbo/dataset/wifi_violence_processed', 'mean_std.h5')
 
     save_path = os.path.join(save_path)
     if not os.path.exists(save_path):
