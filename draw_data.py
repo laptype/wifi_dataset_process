@@ -77,18 +77,7 @@ if __name__ == '__main__':
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    # data_list = load_data(data_path)
-    #
-    # for i_cls, cls in enumerate(data_list):
-    #     print(str(i_cls).center(20, '='))
-    #     for i_loc, loc in enumerate(cls):
-    #         print(str(i_loc).center(10,'-'))
-    #         for k, v in loc.items():
-    #             print(k, v)
-
     check = Check_dataset(data_path, save_path)
     data_list = check.load_file()
-    # data = check.load_data(data_list[0][0]['12'][0])
-    # plt.plot(data[:,:,0].T)
-    # plt.show()
+
     check.plot_loc()
