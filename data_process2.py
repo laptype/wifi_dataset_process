@@ -13,7 +13,7 @@ from tqdm import tqdm
 from util import load_mat, save_mat
 
 import random
-
+# 动作-场景-某个人-第5.10条做测试 ----
 def split_train_test(dataset_path: os.path, save_path, rand = True, train_ratio = 0.8, mean_std_path=None):
     file_list = os.listdir(dataset_path)
     class_list = [[[] for _ in range(8)] for _ in range(7)]
