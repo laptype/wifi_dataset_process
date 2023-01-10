@@ -187,7 +187,7 @@ class Dataset_proecess():
             mean_std_path = os.path.join(self.mean_std_path, f'mean_std_{index}.h5')
             if os.path.exists(mean_std_path):
                 mean_std = load_mat(mean_std_path)
-                print(mean_std['mean'].shape, mean_std['std'].shape, mean_std['max'], mean_std['min'])
+                print(mean_std['mean'].shape, mean_std['std'].shape, mean_std['max'].shape, mean_std['min'].shape)
                 if mean_std['mean'].shape[0] != mean_std['std'].shape[0]:
                     return False
             else:
@@ -235,31 +235,11 @@ if __name__ == '__main__':
     """
         路径相关：
     """
-    # dataset_path    = '/home/lanbo/dataset/wifi_violence/'
-    # save_path       = '/home/lanbo/dataset/wifi_violence_processed_loc/'
-
-    dataset_path    = 'wifi_partition_data_abs'
-    save_path       = 'dataset2'
-
-    train_path      = os.path.join(save_path, 'train')
-    train_list_path = os.path.join(save_path, 'train_list.csv')
-    test_path       = os.path.join(save_path, 'test')
-    test_list_path  = os.path.join(save_path, 'test_list.csv')
-
-    mean_std_path   = os.path.join('/home/lanbo/dataset/wifi_violence_processed', 'mean_std.h5')
-
-    save_path = os.path.join(save_path)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-
-    """
-        check_data_list
-    """
-    index_list = [5, 1000, 2000]
+    dataset_path    = '/home/lanbo/dataset/wifi_violence/'
+    save_path       = '/home/lanbo/dataset/wifi_violence_processed_loc_lin/'
 
     '''
         数据集划分
     '''
-    dataset_process = Dataset_proecess(dataset_path, save_path)
+    dataset_process = Dataset_proecess(dataset_path, save_path, nor_type='linear')
     dataset_process.split_train_test()
