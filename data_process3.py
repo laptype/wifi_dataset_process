@@ -59,16 +59,16 @@ class Dataset_proecess():
         df_train.to_csv(self.train_list_path, index=False)
         df_test.to_csv(self.test_list_path, index=False)
 
-        if self.nor_type == 'mean_std':
-            if not self._check_mean_std():
-                self.normalize_mean_std(train_list)
-            else:
-                print('use exist mean_std')
 
-            self.save_data_mean_std(train_list, self.train_data_path, 'train')
-            self.save_data_mean_std(test_list, self.test_data_path, 'test')
+        if not self._check_mean_std():
+            self.normalize_mean_std(train_list)
+        else:
+            print('use exist mean_std')
 
-    def save_data_mean_std(self, data_list, save_path, name):
+        self.save_data_mean_std(train_list, self.train_data_path, 'train', self.nor_type)
+        self.save_data_mean_std(test_list, self.test_data_path, 'test', self.nor_type)
+
+    def save_data_mean_std(self, data_list, save_path, name, nor_type):
 
         def _load_mat_data(data_path):
             data = scio.loadmat(data_path)['absMat']
@@ -78,6 +78,9 @@ class Dataset_proecess():
 
         def _normalize(data, mean, std):
             return (data - mean) / std
+
+        def _normalize_lin(data, mean, max, min):
+            return (data - mean) / (max - min)
 
         def _downsample(data):
             n_channel, seq_len = data.shape
@@ -98,7 +101,10 @@ class Dataset_proecess():
                     data = _load_mat_data(file['data_path'])
                     if i == 0:
                         check_data_list[index].append(data)
-                    data = _normalize(data, mean_std['mean'], mean_std['std'])
+                    if nor_type == 'mean_std':
+                        data = _normalize(data, mean_std['mean'], mean_std['std'])
+                    elif nor_type == 'linear':
+                        data = _normalize_lin(data, mean_std['mean'], mean_std['max'], mean_std['min'])
                     if i == 0:
                         check_data_list[index].append(data)
                     data = _downsample(data)
@@ -111,6 +117,8 @@ class Dataset_proecess():
                                  'label': int(file["label"])
                              })
         self.check_data(check_data_list, name)
+
+    # def save_data_mean_lin(self, data_list, save_path, name):
 
     def check_data(self, check_data_list, name):
         plt.figure(figsize=(15,15))
@@ -147,7 +155,11 @@ class Dataset_proecess():
             mean = np.expand_dims(mean, 1)
             std = np.std(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
             std = np.expand_dims(std, 1)
-            return mean, std
+            max = np.max(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
+            max = np.expand_dims(max, 1)
+            min = np.min(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
+            min = np.expand_dims(min, 1)
+            return mean, std, max, min
 
         loc_list = self.read_file_list_loc(data_list)
 
@@ -161,18 +173,21 @@ class Dataset_proecess():
                 data = np.concatenate(amp_list, axis=0)
                 # loc.write(data.shape)
                 loc.close()
-            mean, std = _get_mean_std(data)
+            mean, std, max, min = _get_mean_std(data)
             save_mat(os.path.join(self.mean_std_path, f'mean_std_{index}.h5'),
                      {
                          'mean': mean,
-                         'std': std})
+                         'std': std,
+                         'max': max,
+                         'min': min
+                     })
 
     def _check_mean_std(self):
         for index in range(8):
             mean_std_path = os.path.join(self.mean_std_path, f'mean_std_{index}.h5')
             if os.path.exists(mean_std_path):
                 mean_std = load_mat(mean_std_path)
-                print(mean_std['mean'].shape, mean_std['std'].shape)
+                print(mean_std['mean'].shape, mean_std['std'].shape, mean_std['max'], mean_std['min'])
                 if mean_std['mean'].shape[0] != mean_std['std'].shape[0]:
                     return False
             else:
