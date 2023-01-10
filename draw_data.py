@@ -80,4 +80,4 @@ if __name__ == '__main__':
     check = Check_dataset(data_path, save_path)
     data_list = check.load_file()
 
-    check.plot_loc()
+    # check.plot_loc()
