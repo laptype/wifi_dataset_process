@@ -21,14 +21,18 @@ class Dataset_proecess():
                  dataset_path,
                  save_path,
                  nor_type = 'mean_std',
-                 down_factor = 5):
+                 down_factor = 5,
+                 mean_std_path = ''):
         self.dataset_path = dataset_path
         self.save_path = save_path
         self.train_list_path = os.path.join(save_path, 'train_list.csv')
         self.test_list_path = os.path.join(save_path, 'test_list.csv')
         self.train_data_path = os.path.join(save_path, 'train')
         self.test_data_path = os.path.join(save_path, 'test')
-        self.mean_std_path = os.path.join(save_path, 'mean_std')
+        if mean_std_path is not '':
+            self.mean_std_path = mean_std_path
+        else:
+            self.mean_std_path = os.path.join(save_path, 'mean_std')
         self.path_check(self.train_data_path)
         self.path_check(self.test_data_path)
         self.path_check(self.mean_std_path)
@@ -98,13 +102,15 @@ class Dataset_proecess():
             with tqdm(loc) as loc:
                 for i, file in enumerate(loc):
                     loc.set_description(f'nor_location: {index}')
-                    data = _load_mat_data(file['data_path'])
+                    data = _load_mat_data(file['data_path']) # 90 5000
                     if i == 0:
                         check_data_list[index].append(data)
                     if nor_type == 'mean_std':
                         data = _normalize(data, mean_std['mean'], mean_std['std'])
                     elif nor_type == 'linear':
                         data = _normalize_lin(data, mean_std['mean'], mean_std['max'], mean_std['min'])
+                    elif nor_type == 'no':
+                        data = data
                     if i == 0:
                         check_data_list[index].append(data)
                     data = _downsample(data)
@@ -114,7 +120,7 @@ class Dataset_proecess():
                     save_mat(os.path.join(save_path, f'{file["file"]}.h5'),
                              {
                                  'amp': data,
-                                 'label': int(file["label"])
+                                 'label': int(file["label"]) # 动作类别
                              })
         self.check_data(check_data_list, name)
 
@@ -150,15 +156,15 @@ class Dataset_proecess():
             return data
 
         def _get_mean_std(data):
-            channel = data.shape[1]
-            mean = np.mean(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-            mean = np.expand_dims(mean, 1)
+            channel = data.shape[1] # 200，90，5000
+            mean = np.mean(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1) # (90, )
+            mean = np.expand_dims(mean, 1) # (90, 1)
             std = np.std(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-            std = np.expand_dims(std, 1)
+            std = np.expand_dims(std, 1) # (90, 1)
             max = np.max(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-            max = np.expand_dims(max, 1)
+            max = np.expand_dims(max, 1) # (90, 1)
             min = np.min(data.transpose(1, 0, 2).reshape(channel, -1), axis=-1)
-            min = np.expand_dims(min, 1)
+            min = np.expand_dims(min, 1) # (90, 1)
             return mean, std, max, min
 
         loc_list = self.read_file_list_loc(data_list)
@@ -168,9 +174,9 @@ class Dataset_proecess():
                 amp_list = []
                 for file in loc:
                     loc.set_description(f'location: {index}')
-                    data = _load_mat_data(file['data_path'])
-                    amp_list.append(np.expand_dims(data, 0))
-                data = np.concatenate(amp_list, axis=0)
+                    data = _load_mat_data(file['data_path']) # 90 5000
+                    amp_list.append(np.expand_dims(data, 0)) # 0 90 5000
+                data = np.concatenate(amp_list, axis=0) # (200 90 5000)
                 # loc.write(data.shape)
                 loc.close()
             mean, std, max, min = _get_mean_std(data)
@@ -198,7 +204,7 @@ class Dataset_proecess():
 
     def read_file_list_loc(self, data_list):
         """
-            返回按位置分好的 mat 文件的路径
+            返回按位置分好的 mat 文件的路径 [[],[],[]]
         """
         loc_list = [[] for _ in range(8)]
         for file_n, action, location, person in data_list:
@@ -219,7 +225,17 @@ class Dataset_proecess():
         return path
 
 
+def check_data(list_path, data_path):
+    df = pd.read_csv(list_path)
+    import matplotlib.pyplot as plt
 
+    for index, row in df.iterrows():
+        data = load_mat(os.path.join(data_path, f'{row["file"]}.h5'))
+        if data['label'] == row['label']:
+            if index % 1000 == 0:
+                print(data['amp'].shape, '-', data['label'], '-', row['label'])
+        else:
+            print('error')
 
 
 if __name__ == '__main__':
@@ -236,10 +252,15 @@ if __name__ == '__main__':
         路径相关：
     """
     dataset_path    = '/home/lanbo/dataset/wifi_violence/'
-    save_path       = '/home/lanbo/dataset/wifi_violence_processed_loc_lin/'
+    # save_path       = '/home/lanbo/dataset/wifi_violence_processed_loc_lin/'
+    save_path       = '/home/lanbo/dataset/wifi_violence_processed_loc_no/'
+    mean_std_path = '/home/lanbo/dataset/wifi_violence_processed_loc_lin/mean_std/'
+    dataset_process = Dataset_proecess(dataset_path, save_path, nor_type='no', mean_std_path=mean_std_path)
+    # dataset_process = Dataset_proecess(dataset_path, save_path, nor_type='mean_std')
 
     '''
         数据集划分
     '''
-    dataset_process = Dataset_proecess(dataset_path, save_path, nor_type='linear')
     dataset_process.split_train_test()
+
+    # check_data(dataset_process.test_list_path, dataset_process.test_data_path)

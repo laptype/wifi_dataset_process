@@ -283,7 +283,7 @@ if __name__ == '__main__':
         check_data(test_list_path, test_path,index_list,'amp_nor',save_path)
 
     '''
-        下采样
+        下采样 5000 -》 1000
     '''
     if if_downsample:
         downsample_data(train_list_path=train_list_path,
